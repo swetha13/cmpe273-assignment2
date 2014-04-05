@@ -1,5 +1,7 @@
 package edu.sjsu.cmpe.library.api.resources;
 
+import javax.jms.Connection;
+import javax.jms.JMSException;
 import javax.validation.Valid;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -17,6 +19,7 @@ import javax.ws.rs.core.Response;
 import com.yammer.dropwizard.jersey.params.LongParam;
 import com.yammer.metrics.annotation.Timed;
 
+import edu.sjsu.cmpe.library.Stomp.StompClient;
 import edu.sjsu.cmpe.library.domain.Book;
 import edu.sjsu.cmpe.library.domain.Book.Status;
 import edu.sjsu.cmpe.library.dto.BookDto;
@@ -30,6 +33,7 @@ import edu.sjsu.cmpe.library.repository.BookRepositoryInterface;
 public class BookResource {
     /** bookRepository instance */
     private final BookRepositoryInterface bookRepository;
+    private StompClient producer;
 
     /**
      * BookResource constructor
@@ -37,8 +41,9 @@ public class BookResource {
      * @param bookRepository
      *            a BookRepository instance
      */
-    public BookResource(BookRepositoryInterface bookRepository) {
+    public BookResource(BookRepositoryInterface bookRepository , StompClient producer) {
 	this.bookRepository = bookRepository;
+	this.producer = producer;
     }
 
     @GET
@@ -88,6 +93,26 @@ public class BookResource {
 	    @DefaultValue("available") @QueryParam("status") Status status) {
 	Book book = bookRepository.getBookByISBN(isbn.get());
 	book.setStatus(status);
+	
+	if (status.getValue()=="lost"){
+		
+		try {
+			Connection connectToQueue = producer.createConnection();
+			long isbnNum = book.getIsbn();
+			producer.sendMessageToQueue(connectToQueue, isbnNum);
+			//producer.closeConnection(connectToQueue);
+			
+			System.out.println("message received by queue");
+			producer.reveiveQueueMessage(connectToQueue);
+			producer.closeConnection(connectToQueue);
+			
+		} catch (JMSException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
 
 	BookDto bookResponse = new BookDto(book);
 	String location = "/books/" + book.getIsbn();
