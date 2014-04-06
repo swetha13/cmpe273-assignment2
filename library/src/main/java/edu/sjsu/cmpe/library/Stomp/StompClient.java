@@ -1,5 +1,8 @@
 package edu.sjsu.cmpe.library.Stomp;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+
 import javax.jms.Connection;
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
@@ -12,12 +15,18 @@ import javax.jms.TextMessage;
 
 import org.fusesource.stomp.jms.StompJmsConnectionFactory;
 import org.fusesource.stomp.jms.StompJmsDestination;
+import org.fusesource.stomp.jms.message.StompJmsMessage;
 
+import com.yammer.dropwizard.config.Configuration;
+
+import edu.sjsu.cmpe.library.config.LibraryServiceConfiguration;
+import edu.sjsu.cmpe.library.domain.Book;
+import edu.sjsu.cmpe.library.domain.Book.Status;
 import edu.sjsu.cmpe.library.repository.BookRepositoryInterface;
 
 public class StompClient {
 
-	private String apolloUser;
+	private String apolloUser ;
 	private String apolloPassword;
 	private String apolloHost;
 	private String apolloPort;
@@ -26,7 +35,22 @@ public class StompClient {
 	private String topicName;
 	private BookRepositoryInterface bookRepository;
 
-
+	public StompClient(){
+		
+		LibraryServiceConfiguration configuration = new LibraryServiceConfiguration();
+		apolloUser = configuration.getapolloUser();
+		apolloPassword = configuration.getApolloPassword();
+		
+	//	apolloHost =configuration.getApolloHost();
+		System.out.println("apollo host" + apolloHost);
+		apolloPort = configuration.getApolloPort();
+		
+		apolloHost = "54.215.133.131";
+		
+		
+		
+		
+	}
 
 	public StompClient(String apolloUser, String apolloPassword,
 			String apolloHost, String apolloPort, String libraryName, String queueName, String topicName, BookRepositoryInterface bookRepository) {
@@ -39,6 +63,7 @@ public class StompClient {
 		this.topicName = topicName;
 		this.bookRepository= bookRepository;
 	}
+	
 
 	public Connection createConnection() throws JMSException{
 		StompJmsConnectionFactory factory= new StompJmsConnectionFactory();
@@ -54,6 +79,7 @@ public class StompClient {
 		Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 		Destination destination = new StompJmsDestination(queueName);
 		MessageProducer producer = session.createProducer(destination);
+		//producer.setTimeToLive(1000);
 		producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
 		String msgToQueue = libraryName + ":" + isbn;
 		TextMessage message = session.createTextMessage(msgToQueue);
@@ -70,23 +96,80 @@ public class StompClient {
 
 	}
 
-	public void reveiveQueueMessage(Connection connection) throws JMSException {
+	public void subscribeToTopic(Connection connection) throws JMSException, MalformedURLException {
 		connection.start();
 		// bookReuqest = new BookRequest();
 		Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-		Destination dest = new StompJmsDestination(queueName);
+		Destination dest = new StompJmsDestination(topicName);
 		MessageConsumer consumer = session.createConsumer(dest);
-
+		
 		while(true) {
 
 			/**Wait for message for 5 sec*/
-			Message msg = consumer.receive(5000);
+			Message msg = consumer.receive(50000);
 			if( msg instanceof  TextMessage ) {
 				String body = ((TextMessage) msg).getText();
 				System.out.println("Received message = " + body);
-
-
+				updateLibrary(body);
+				
+				if( "SHUTDOWN".equals(body)) {
+					break;
+				}
 			}
+				else if (msg instanceof StompJmsMessage) {
+					StompJmsMessage smsg = ((StompJmsMessage) msg);
+					String body = smsg.getFrame().contentAsString();
+					if ("SHUTDOWN".equals(body)) {
+						break;
+					}
+					System.out.println("Received message = " + body);
+
+				} else {
+					System.out.println("Unexpected message type: "+msg.getClass());
+				}
+			}
+
 		}
+	
+	
+	public void updateLibrary( String queueMessage) throws MalformedURLException{
+		
+		
+		String queueValues[] = queueMessage.split(":");
+    	Long isbnValue = Long.parseLong(queueValues[0]);
+    	Book book = bookRepository.getBookByISBN(isbnValue);
+    	
+    	if ( book == null){
+    		
+    		Book newBook = new Book();
+    		newBook.setIsbn(isbnValue);
+    		System.out.println("isbn value" + newBook.getIsbn());
+    		newBook.setTitle(queueValues[1]);
+    		newBook.setCategory(queueValues[2]);
+
+    		
+    		String urlname = queueValues[3] + ":" + queueValues[4];
+    		
+    		System.out.println("url value" + urlname);
+    		URL url = new URL(urlname);
+    		newBook.setCoverimage(url);
+    		
+    		bookRepository.saveBook(newBook);
+    		
+    		System.out.println(" Updated new book with isbn " + newBook.getIsbn() +" to the repository");
+    		
+    	}
+    	else if ( book.getStatus()==Status.lost){
+    		System.out.println("Updating the status of book " + book.getIsbn() +"to available");
+    		book.setStatus(Status.available);
+    		
+    	}
+    	else{
+    		System.out.println("Book " + book.getIsbn() +" is already there in the repository");
+    	}
+    	
+    		
 	}
+	
+	
 }

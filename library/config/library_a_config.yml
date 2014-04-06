@@ -9,7 +9,7 @@ stompQueueName: /queue/78201.book.orders
 # Library A subscribes to all book categories
 # FIXME - Replace 99999 with your ID
 # If book.* doesn't work, try book.all
-stompTopicName: /topic/78201.book.*
+stompTopicName: /topic/78201.book.all
 
 # Name for library A
 libraryName: library-a

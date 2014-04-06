@@ -66,34 +66,21 @@ public class LibraryService extends Service<LibraryServiceConfiguration> {
 	log.debug(log+"\nApollo User: "+user+"\nApollo Password: "+password+"\nApollo Host: "+
 			host+"\nApollo Port: "+port);
 	
-	/*
-	factory= new StompJmsConnectionFactory();
-	factory.setBrokerURI("tcp://" + host + ":" + port);
-	Connection connection = factory.createConnection(user, password);
-	connection.start();
-	
-	session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-	Destination destination = new StompJmsDestination(queueName);
-	
-	MessageProducer producer = session.createProducer(destination);
-	TextMessage message = session.createTextMessage("library-a:1234");
-	message.setLongProperty("id", System.currentTimeMillis());
-	producer.send(message);
-	
-	connection.close();
-	*/
-	
 	
 	/** Root API */
 	environment.addResource(RootResource.class);
 	/** Books APIs */
 	BookRepositoryInterface bookRepository = new BookRepository();
 	
-	StompClient producer = new StompClient(user, password, host, port, libraryName, queueName, topicName, bookRepository);
+	StompClient stomp = new StompClient(user, password, host, port, libraryName, queueName, topicName, bookRepository);
 	
-	environment.addResource(new BookResource(bookRepository,producer));
+	//environment.addResource(new BookResource(bookRepository,stomp));
 	//environment.
 	/** UI Resources */
+	
+	Connection connection = stomp.createConnection();
+	stomp.subscribeToTopic(connection);
+	
 	environment.addResource(new HomeResource(bookRepository));
     }
 }

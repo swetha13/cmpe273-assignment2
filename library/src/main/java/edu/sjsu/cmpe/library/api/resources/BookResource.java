@@ -1,5 +1,9 @@
 package edu.sjsu.cmpe.library.api.resources;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+
 import javax.jms.Connection;
 import javax.jms.JMSException;
 import javax.validation.Valid;
@@ -99,12 +103,17 @@ public class BookResource {
 		try {
 			Connection connectToQueue = producer.createConnection();
 			long isbnNum = book.getIsbn();
-			producer.sendMessageToQueue(connectToQueue, isbnNum);
-			//producer.closeConnection(connectToQueue);
 			
-			System.out.println("message received by queue");
-			producer.reveiveQueueMessage(connectToQueue);
+			producer.sendMessageToQueue(connectToQueue, isbnNum);
+			
+			
 			producer.closeConnection(connectToQueue);
+			
+			System.out.println(" Sent the message to the queue , so closing first connection");
+			/*Connection connectingAgain = producer.createConnection();
+			System.out.println("Opening second connection - for message received by queue");
+			producer.reveiveQueueMessage(connectingAgain);
+			producer.closeConnection(connectingAgain);*/
 			
 		} catch (JMSException e) {
 			// TODO Auto-generated catch block
@@ -131,5 +140,56 @@ public class BookResource {
 
 	return bookResponse;
     }
+    
+    
+    /*@POST
+    @Timed(name = "update-book")
+    public Response updateBook(@Valid String queueMessage) throws MalformedURLException {
+    	
+    	
+    	String queueValues[] = queueMessage.split(":");
+    	Long isbnValue = Long.parseLong(queueValues[0]);
+    	Book book = bookRepository.getBookByISBN(isbnValue);
+    	
+    	if ( book == null){
+    		
+    		Book newBook = new Book();
+    		newBook.setIsbn(isbnValue);
+    		newBook.setTitle(queueValues[1]);
+    		newBook.setCategory(queueValues[2]);
+    		
+    		System.out.println("url value" + queueValues[3]);
+    		URL url = new URL(queueValues[3]);
+    		newBook.setCoverimage(url);
+    		
+    		bookRepository.saveBook(newBook);
+    		
+    		System.out.println(" Updated new book with isbn " + newBook.getIsbn() +" to the repository");
+    		
+    	}
+    	else if ( book.getStatus()==Status.lost){
+    		System.out.println("Updating the status of book " + book.getIsbn() +"to available");
+    		book.setStatus(Status.available);
+    		
+    	}
+    	else{
+    		System.out.println("Book " + book.getIsbn() +" is already there in the repository");
+    	}
+    	
+    	
+	  return Response.status(201).build();
+    }
+
+    */
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 }
 
