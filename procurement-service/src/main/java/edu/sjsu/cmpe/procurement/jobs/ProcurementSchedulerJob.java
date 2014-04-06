@@ -1,5 +1,7 @@
 package edu.sjsu.cmpe.procurement.jobs;
 
+import java.util.List;
+
 import javax.jms.Connection;
 import javax.jms.JMSException;
 
@@ -12,8 +14,10 @@ import com.sun.jersey.api.client.WebResource;
 
 import de.spinscale.dropwizard.jobs.Job;
 import de.spinscale.dropwizard.jobs.annotations.Every;
+import edu.sjsu.cmpe.library.domain.Book;
 import edu.sjsu.cmpe.procurement.ProcurementService;
 import edu.sjsu.cmpe.procurement.domain.BookOrder;
+import edu.sjsu.cmpe.procurement.domain.ShippedBook;
 import edu.sjsu.cmpe.procurement.stomp.StompClient;
 
 /**
@@ -32,12 +36,16 @@ public class ProcurementSchedulerJob extends Job {
 		System.out.println("Starting Job 1");
 
 		BookOrder bookRequest ;
+
 		try {
 			StompClient stompQueue = new StompClient();
 			Connection connection = stompQueue.createConnection();
 
 			bookRequest = stompQueue.receiveMessageFromQueue(connection);
 
+			stompQueue.closeConnection(connection);
+
+			/*System.out.println("num of orders"+ bookRequest.get_order_book_isbns());
 			if(bookRequest.get_order_book_isbns().size()!=0){
 
 				System.out.println("Post to Publisher");
@@ -49,7 +57,10 @@ public class ProcurementSchedulerJob extends Job {
 				ClientResponse response = webResource.accept("application/json").type("application/json").entity(bookRequest).post(ClientResponse.class);
 				System.out.println(response.getEntity(String.class));
 			}
-
+			else{
+				System.out.println("No messages in the queue");
+			}
+*/
 
 		} catch (JMSException e) {
 			// TODO Auto-generated catch block
@@ -57,12 +68,34 @@ public class ProcurementSchedulerJob extends Job {
 		}
 
 		catch ( Exception e) {
+			System.out.println("exception raised");
 			e.printStackTrace();
 		}  
 
 
+		System.out.println(" Done with POSTing all orders");
 
+		System.out.println("Time to get the orders from the publisher");
 
+		/*System.out.println("Job2 ");
+
+		Client client = Client.create();
+		String url = "http://54.215.133.131:9000/orders/78201";
+
+		WebResource webResource = client.resource(url);
+		ShippedBook response = webResource.accept("application/json").type("application/json").get(ShippedBook.class);
+		StompClient stompQueue = new StompClient();
+		try {
+			Connection connection = stompQueue.createConnection();
+			stompQueue.publishBooksToTopic(connection ,response);
+			
+		} catch (JMSException e) {
+			
+			e.printStackTrace();
+		}
+		
+		
+		System.out.println("Response :" +response.toString());*/
 
 	}
 }

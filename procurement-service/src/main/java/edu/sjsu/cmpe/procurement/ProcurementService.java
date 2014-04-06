@@ -57,6 +57,16 @@ public class ProcurementService extends Service<ProcurementServiceConfiguration>
 	String topicName = configuration.getStompTopicPrefix();
 	log.debug("Queue name is {}. Topic is {}", queueName, topicName);
 	// TODO: Apollo STOMP Broker URL and login
+	
+	String user = configuration.getapolloUser();
+	String password = configuration.getApolloPassword();
+	String host = configuration.getApolloHost();
+	String port = configuration.getApolloPort();
+	//String libraryName = configuration.getLibraryName();
+	
+	log.debug(log+"\nApollo User: "+user+"\nApollo Password: "+password+"\nApollo Host: "+
+			host+"\nApollo Port: "+port);
+	
 
     }
 }
