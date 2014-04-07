@@ -1,5 +1,7 @@
 package edu.sjsu.cmpe.procurement.stomp;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.jms.Connection;
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
@@ -20,11 +22,12 @@ import edu.sjsu.cmpe.procurement.domain.Book;
 import edu.sjsu.cmpe.procurement.domain.BookOrder;
 import edu.sjsu.cmpe.procurement.domain.ShippedBook;
 
+
+
 public class StompClient {
 
 	ProcurementServiceConfiguration configuration = new ProcurementServiceConfiguration();
 	String apolloUser = "admin";
-
 	String apolloPassword = "password";
 	String apolloHost = "54.215.133.131";
 	String apolloPort = "61613";
@@ -34,6 +37,7 @@ public class StompClient {
 	String queueName = "/queue/78201.book.orders";
 	String topicName = "/topic/78201.book.";
 
+	private static final String SHUTDOWN = "SHUTDOWN";
 
 	public StompClient(){
 
@@ -72,34 +76,40 @@ public class StompClient {
 
 		while(true) {
 
-			/**Wait for message for 5 sec*/
-			Message msg = consumer.receive(5000);
+			/**Wait for message for 1 minute*/
+			Message msg = consumer.receive(TimeUnit.MINUTES.toMillis(1));
 
-
-			if( msg instanceof  TextMessage ) {
+			// may be I don't have a message which is ok
+			if (msg == null)
+				continue;
+			else if( msg instanceof TextMessage ) {
 				String body = ((TextMessage) msg).getText();
-				if( !"SHUTDOWN".equals(body)){
+				if (SHUTDOWN.equalsIgnoreCase(body))
+					break;
+				else {
+					// add the book to the requestOrder
 					String split[] = body.split(":");
-
 					isbn = split[1];
 					System.out.println(" isbn number from substring"+isbn);
 					requestOrder.get_order_book_isbns().add(Integer.parseInt(isbn));
 					System.out.println("Received message = " + body);
 
-				}
+				} 
+
 
 			}
-			else if (msg instanceof StompJmsMessage) {
-				StompJmsMessage smsg = ((StompJmsMessage) msg);
-				String body = smsg.getFrame().contentAsString();
-				if ("SHUTDOWN".equals(body)) {
-					break;
-				}
-				System.out.println("Received message = " + body);
-
-			} else {
-				System.out.println("Unexpected message type: "+msg.getClass());
-			}
+//			else if (msg instanceof StompJmsMessage) {
+//				StompJmsMessage smsg = ((StompJmsMessage) msg);
+//				String body = smsg.getFrame().contentAsString();
+//				if ("SHUTDOWN".equals(body)) {
+//					break;
+//				}
+//				System.out.println("Received message = " + body);
+//
+//			} else {
+//				System.out.println("Unexpected message type: "+msg.getClass());
+//				break;
+//			}
 		}
 
 		return requestOrder;
@@ -119,19 +129,25 @@ public class StompClient {
 			// Sending msg to topic with all categories
 			String allCategoriesTopic = topicName  + "all";
 			Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-			Destination dest = new StompJmsDestination(allCategoriesTopic); 
+			StompJmsDestination dest = new StompJmsDestination(allCategoriesTopic);
+			//dest.setPrefix(allCategoriesTopic);
+			
 
 			MessageProducer producer = session.createProducer(dest);
 			producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
+			
 
 			TextMessage msg = session.createTextMessage(message);
 			msg.setLongProperty("id", System.currentTimeMillis());
 			producer.send(msg);
-
+			
 			//Sending msg to particular category
 
 			String categoryTopic = topicName  + book.getCategory();
-			Destination dest2 = new StompJmsDestination(categoryTopic);
+			StompJmsDestination dest2 = new StompJmsDestination(categoryTopic);
+			
+			
+
 			MessageProducer producer2 = session.createProducer(dest2);
 			producer2.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
 			producer2.send(msg);

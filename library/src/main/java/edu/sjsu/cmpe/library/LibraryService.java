@@ -1,5 +1,8 @@
 package edu.sjsu.cmpe.library;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.MessageProducer;
@@ -19,6 +22,7 @@ import com.yammer.dropwizard.config.Environment;
 import com.yammer.dropwizard.views.ViewBundle;
 
 import edu.sjsu.cmpe.library.Stomp.StompClient;
+import edu.sjsu.cmpe.library.Stomp.StompListener;
 import edu.sjsu.cmpe.library.api.resources.BookResource;
 import edu.sjsu.cmpe.library.api.resources.RootResource;
 import edu.sjsu.cmpe.library.config.LibraryServiceConfiguration;
@@ -31,12 +35,14 @@ import edu.sjsu.cmpe.library.ui.resources.HomeResource;
 public class LibraryService extends Service<LibraryServiceConfiguration> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private StompJmsConnectionFactory factory ;
-   
-	private Session session;
+    
 
     public static void main(String[] args) throws Exception {
+	
+	
+	
 	new LibraryService().run(args);
+	
     }
 
     @Override
@@ -72,15 +78,36 @@ public class LibraryService extends Service<LibraryServiceConfiguration> {
 	/** Books APIs */
 	BookRepositoryInterface bookRepository = new BookRepository();
 	
+	
+	
 	StompClient stomp = new StompClient(user, password, host, port, libraryName, queueName, topicName, bookRepository);
 	
-	//environment.addResource(new BookResource(bookRepository,stomp));
+	environment.addResource(new BookResource(bookRepository,stomp));
 	//environment.
 	/** UI Resources */
 	
-	Connection connection = stomp.createConnection();
-	stomp.subscribeToTopic(connection);
+	
 	
 	environment.addResource(new HomeResource(bookRepository));
+	
+	
+	int numThreads = 1;
+    ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+    
+    StompListener backgroundTask = new StompListener(configuration ,bookRepository );
+    
+  	System.out.println("About to submit the background task");
+	executor.execute(backgroundTask);
+	System.out.println("Submitted the background task");
+
+	executor.shutdown();
+	System.out.println("Finished the background task");
+	
+	
+	
+	
     }
+    
+    
+    
 }

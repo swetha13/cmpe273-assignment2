@@ -22,6 +22,7 @@ import com.yammer.dropwizard.config.Configuration;
 import edu.sjsu.cmpe.library.config.LibraryServiceConfiguration;
 import edu.sjsu.cmpe.library.domain.Book;
 import edu.sjsu.cmpe.library.domain.Book.Status;
+import edu.sjsu.cmpe.library.repository.BookRepository;
 import edu.sjsu.cmpe.library.repository.BookRepositoryInterface;
 
 public class StompClient {
@@ -35,22 +36,7 @@ public class StompClient {
 	private String topicName;
 	private BookRepositoryInterface bookRepository;
 
-	public StompClient(){
-		
-		LibraryServiceConfiguration configuration = new LibraryServiceConfiguration();
-		apolloUser = configuration.getapolloUser();
-		apolloPassword = configuration.getApolloPassword();
-		
-	//	apolloHost =configuration.getApolloHost();
-		System.out.println("apollo host" + apolloHost);
-		apolloPort = configuration.getApolloPort();
-		
-		apolloHost = "54.215.133.131";
-		
-		
-		
-		
-	}
+	
 
 	public StompClient(String apolloUser, String apolloPassword,
 			String apolloHost, String apolloPort, String libraryName, String queueName, String topicName, BookRepositoryInterface bookRepository) {
@@ -64,6 +50,18 @@ public class StompClient {
 		this.bookRepository= bookRepository;
 	}
 	
+
+	public StompClient(LibraryServiceConfiguration config , BookRepositoryInterface bookrepo) {
+		this.apolloUser = config.getapolloUser();
+		this.apolloPassword = config.getApolloPassword();
+		this.apolloHost = config.getApolloHost();
+		this.apolloPort = config.getApolloPort();
+		this.libraryName = config.getLibraryName();
+		this.queueName = config.getStompQueueName();
+		this.topicName = config.getStompTopicName();
+		this.bookRepository = bookrepo;
+	}
+
 
 	public Connection createConnection() throws JMSException{
 		StompJmsConnectionFactory factory= new StompJmsConnectionFactory();
@@ -103,10 +101,11 @@ public class StompClient {
 		Destination dest = new StompJmsDestination(topicName);
 		MessageConsumer consumer = session.createConsumer(dest);
 		
+		
 		while(true) {
 
 			/**Wait for message for 5 sec*/
-			Message msg = consumer.receive(50000);
+			Message msg = consumer.receive();
 			if( msg instanceof  TextMessage ) {
 				String body = ((TextMessage) msg).getText();
 				System.out.println("Received message = " + body);
@@ -126,6 +125,8 @@ public class StompClient {
 
 				} else {
 					System.out.println("Unexpected message type: "+msg.getClass());
+					break;
+					
 				}
 			}
 
@@ -137,6 +138,11 @@ public class StompClient {
 		
 		String queueValues[] = queueMessage.split(":");
     	Long isbnValue = Long.parseLong(queueValues[0]);
+    	System.out.println("isbn value "+ isbnValue);
+    	if(bookRepository == null){
+    		System.out.println("book repo is null");
+    	}
+    	
     	Book book = bookRepository.getBookByISBN(isbnValue);
     	
     	if ( book == null){

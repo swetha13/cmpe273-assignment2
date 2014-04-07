@@ -110,10 +110,7 @@ public class BookResource {
 			producer.closeConnection(connectToQueue);
 			
 			System.out.println(" Sent the message to the queue , so closing first connection");
-			/*Connection connectingAgain = producer.createConnection();
-			System.out.println("Opening second connection - for message received by queue");
-			producer.reveiveQueueMessage(connectingAgain);
-			producer.closeConnection(connectingAgain);*/
+			
 			
 		} catch (JMSException e) {
 			// TODO Auto-generated catch block

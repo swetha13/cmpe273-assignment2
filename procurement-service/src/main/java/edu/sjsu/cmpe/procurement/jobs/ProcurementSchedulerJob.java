@@ -33,7 +33,7 @@ public class ProcurementSchedulerJob extends Job {
 		"http://ip.jsontest.com/").get(String.class);
 	log.debug("Response from jsontest.com: {}", strResponse);*/
 
-		System.out.println("Starting Job 1");
+		System.out.println("Part 1 : Receive the messages from the queue and POST it");
 
 		BookOrder bookRequest ;
 
@@ -45,7 +45,7 @@ public class ProcurementSchedulerJob extends Job {
 
 			stompQueue.closeConnection(connection);
 
-			/*System.out.println("num of orders"+ bookRequest.get_order_book_isbns());
+			System.out.println("num of orders"+ bookRequest.get_order_book_isbns());
 			if(bookRequest.get_order_book_isbns().size()!=0){
 
 				System.out.println("Post to Publisher");
@@ -60,7 +60,7 @@ public class ProcurementSchedulerJob extends Job {
 			else{
 				System.out.println("No messages in the queue");
 			}
-*/
+
 
 		} catch (JMSException e) {
 			// TODO Auto-generated catch block
@@ -75,9 +75,9 @@ public class ProcurementSchedulerJob extends Job {
 
 		System.out.println(" Done with POSTing all orders");
 
-		System.out.println("Time to get the orders from the publisher");
+		System.out.println("Part 2 : Time to get the orders and publish to the topics");
 
-		/*System.out.println("Job2 ");
+		System.out.println("Job2 ");
 
 		Client client = Client.create();
 		String url = "http://54.215.133.131:9000/orders/78201";
@@ -88,6 +88,7 @@ public class ProcurementSchedulerJob extends Job {
 		try {
 			Connection connection = stompQueue.createConnection();
 			stompQueue.publishBooksToTopic(connection ,response);
+			stompQueue.closeConnection(connection);
 			
 		} catch (JMSException e) {
 			
@@ -95,7 +96,7 @@ public class ProcurementSchedulerJob extends Job {
 		}
 		
 		
-		System.out.println("Response :" +response.toString());*/
+		System.out.println("Response :" +response.toString());
 
 	}
 }
