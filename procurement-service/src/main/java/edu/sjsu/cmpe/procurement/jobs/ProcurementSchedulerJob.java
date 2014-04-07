@@ -14,8 +14,6 @@ import com.sun.jersey.api.client.WebResource;
 
 import de.spinscale.dropwizard.jobs.Job;
 import de.spinscale.dropwizard.jobs.annotations.Every;
-import edu.sjsu.cmpe.library.domain.Book;
-import edu.sjsu.cmpe.procurement.ProcurementService;
 import edu.sjsu.cmpe.procurement.domain.BookOrder;
 import edu.sjsu.cmpe.procurement.domain.ShippedBook;
 import edu.sjsu.cmpe.procurement.stomp.StompClient;
@@ -23,7 +21,7 @@ import edu.sjsu.cmpe.procurement.stomp.StompClient;
 /**
  * This job will run at every 5 second.
  */
-@Every("50s")
+@Every("300s")
 public class ProcurementSchedulerJob extends Job {
 	private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -45,7 +43,7 @@ public class ProcurementSchedulerJob extends Job {
 
 			stompQueue.closeConnection(connection);
 
-			System.out.println("num of orders"+ bookRequest.get_order_book_isbns());
+			System.out.println(" orders to POST to publisher"+ bookRequest.get_order_book_isbns());
 			if(bookRequest.get_order_book_isbns().size()!=0){
 
 				System.out.println("Post to Publisher");

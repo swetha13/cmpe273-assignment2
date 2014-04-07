@@ -14,9 +14,6 @@ import javax.jms.TextMessage;
 
 import org.fusesource.stomp.jms.StompJmsConnectionFactory;
 import org.fusesource.stomp.jms.StompJmsDestination;
-import org.fusesource.stomp.jms.message.StompJmsMessage;
-
-import edu.sjsu.cmpe.library.repository.BookRepositoryInterface;
 import edu.sjsu.cmpe.procurement.config.ProcurementServiceConfiguration;
 import edu.sjsu.cmpe.procurement.domain.Book;
 import edu.sjsu.cmpe.procurement.domain.BookOrder;
@@ -77,7 +74,7 @@ public class StompClient {
 		while(true) {
 
 			/**Wait for message for 1 minute*/
-			Message msg = consumer.receive(TimeUnit.MINUTES.toMillis(1));
+			Message msg = consumer.receive(5000);
 
 			// may be I don't have a message which is ok
 			if (msg == null)
